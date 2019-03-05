@@ -1,0 +1,71 @@
+plugins {
+    id 'application'
+    id 'org.jetbrains.kotlin.jvm' version '1.3.21'
+}
+
+group 'dlurton'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+application {
+    mainClassName = "com.mycompany.app.App"
+}
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    graal
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    implementation 'org.graalvm.js:js-scriptengine:1.0.0-rc12'
+    implementation 'org.graalvm.js:js:1.0.0-rc12'
+    implementation 'org.graalvm.sdk:graal-sdk:1.0.0-rc12'
+    implementation 'org.graalvm.tools:profiler:1.0.0-rc12'
+    implementation 'org.graalvm.tools:chromeinspector:1.0.0-rc12'
+
+    implementation 'org.graalvm.compiler:compiler:1.0.0-rc12'
+    implementation 'org.graalvm.truffle:truffle-api:1.0.0-rc12'
+
+
+    graal 'org.graalvm.compiler:compiler:1.0.0-rc12'
+    graal 'org.graalvm.truffle:truffle-api:1.0.0-rc12'
+    graal 'org.graalvm.sdk:graal-sdk:1.0.0-rc12'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+// Copy dependencies in the "graal" configuration to $buildDir/compiler.
+// This is needed because the need to be added to the module-path at runtime.
+// There must be a better way to accomplish this.
+task copyToLib(type: Copy) {
+    into "$buildDir/compiler"
+    from configurations.graal
+}
+
+compileKotlin {
+    dependsOn copyToLib
+}
+
+test {
+    doFirst {
+        jvmArgs = [
+                '-XX:+UnlockExperimentalVMOptions',
+                '-XX:+EnableJVMCI',
+                "--module-path=$buildDir/compiler",
+                "--upgrade-module-path=$buildDir/compiler/compiler-1.0.0-rc12.jar"
+        ]
+    }
+}
